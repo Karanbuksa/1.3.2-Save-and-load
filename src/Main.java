@@ -2,6 +2,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class Main {
@@ -11,19 +12,21 @@ public class Main {
         GameProgress gameProgress1 = new GameProgress(16, 5, 10, 8000);
         GameProgress gameProgress2 = new GameProgress(16, 7, 99, 8000);
         GameProgress gameProgress3 = new GameProgress(16, 5, 99, 8000);
-        saveGame("D:\\Games\\savegames\\" + gameProgress1, gameProgress1);
-        saveGame("D:\\Games\\savegames\\" + gameProgress2, gameProgress2);
-        saveGame("D:\\Games\\savegames\\" + gameProgress3, gameProgress3);
+        saveGame("D:\\Games\\savegames\\gameprog1.dat", gameProgress1);
+        saveGame("D:\\Games\\savegames\\gameprog2.dat", gameProgress2);
+        saveGame("D:\\Games\\savegames\\gameprog3.dat", gameProgress3);
         zipFiles("D:\\Games\\savegames\\savedgames.zip", paths);
         for (String path : paths) {
             File file = new File(path);
             file.delete();
         }
+        openZip("D:\\Games\\savegames\\savedgames.zip", "D:\\Games\\savegames\\");
+        System.out.println(openProgress("D:\\Games\\savegames\\gameprog1.dat"));
     }
 
     public static void saveGame(String path, GameProgress gameProgress) {
-        try (FileOutputStream saveGamePath = new FileOutputStream(path)) {
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(saveGamePath);
+        try (FileOutputStream saveGamePath = new FileOutputStream(path);
+             ObjectOutputStream objectOutputStream = new ObjectOutputStream(saveGamePath)) {
             objectOutputStream.writeObject(gameProgress);
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -49,5 +52,38 @@ public class Main {
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    public static void openZip(String pathToArchive, String pathToDir) {
+        try (FileInputStream fileInputStream = new FileInputStream(pathToArchive);
+             ZipInputStream zipInputStream = new ZipInputStream(fileInputStream)
+        ) {
+            ZipEntry zipEntry;
+            String name;
+            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                name = zipEntry.getName();
+                FileOutputStream fileOutputStream = new FileOutputStream(pathToDir + name);
+                for (int i = zipInputStream.read(); i != -1; i = zipInputStream.read()) {
+                    fileOutputStream.write(i);
+                }
+                fileOutputStream.flush();
+                zipInputStream.closeEntry();
+                fileOutputStream.close();
+            }
+
+        } catch (IOException exception) {
+            System.out.println(exception.getMessage());
+        }
+    }
+
+    public static GameProgress openProgress(String savePath) {
+        GameProgress gameProgress = null;
+        try (FileInputStream fileInputStream = new FileInputStream(savePath);
+             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream)) {
+            gameProgress = (GameProgress) objectInputStream.readObject();
+        } catch (Exception exception) {
+            System.out.println(exception.getMessage());
+        }
+        return gameProgress;
     }
 }
